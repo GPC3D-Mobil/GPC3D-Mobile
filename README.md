@@ -2,7 +2,7 @@
 
 Application mobile-first pour le suivi GPC3D.
 
-### Fonctionnalités V2
+### Fonctionnalités
 - Tableau de bord mobile
 - Clients et historique
 - Interventions
@@ -10,16 +10,13 @@ Application mobile-first pour le suivi GPC3D.
 - Plusieurs passages par intervention
 - Produits utilisés
 - Signature client au doigt
-- Fiche d'intervention imprimable / enregistrable en PDF
+- Fiche d’intervention imprimable / enregistrable en PDF
 - Sauvegarde locale
 - Export / import JSON
-- Manifest PWA et service worker pour l'utilisation hors connexion
+- Manifest PWA et service worker
 
-### Installation GitHub Pages
-1. Remplacer les fichiers du dépôt par ceux de cette archive.
-2. Vérifier que GitHub Pages publie la branche/dossier contenant `index.html`.
-3. Ouvrir l'adresse GitHub Pages sur le téléphone.
-4. Utiliser « Ajouter à l'écran d'accueil » / « Installer l'application ».
+### Correctif V2.1
+Correction de l’enregistrement des nouvelles interventions afin que les passages, produits, signature et fiche puissent être utilisés immédiatement après la création.
 
 ### Important
-La sauvegarde est actuellement locale à l'appareil. La synchronisation cloud sécurisée sera ajoutée dans une prochaine version.
+La sauvegarde est actuellement locale à l’appareil. La synchronisation cloud sécurisée sera ajoutée dans une prochaine version.

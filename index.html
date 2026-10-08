@@ -180,7 +180,7 @@ function nextNumber(){
  const y=new Date().getFullYear(); const n=String(data.counter++).padStart(4,'0'); return `GPC3D-${y}-${n}`;
 }
 function newIntervention(clientId=''){
- const i={id:uid(),number:nextNumber(),clientId,date:new Date().toISOString().slice(0,10),type:'Maintenance / traitement',pest:'',zones:'',observations:'',passages:[],products:[],signature:'',createdAt:Date.now()};
+ const i={id:uid(),number:'Nouvelle intervention',clientId,date:new Date().toISOString().slice(0,10),type:'Maintenance / traitement',pest:'',zones:'',observations:'',passages:[],products:[],signature:'',createdAt:Date.now()};
  show('interventionDetail');interventionDetail.innerHTML=interventionForm(i,true);setTimeout(()=>setupSignature(i.id),50);
 }
 function interventionForm(i,isNew=false){
@@ -213,10 +213,22 @@ function renderProducts(i){
  return i.products.length?i.products.map((p,n)=>`<div class="item"><div class="item-title">${esc(p.name)}</div><div class="item-meta">${esc(p.qty)} ${esc(p.unit||'')}</div></div>`).join(''):'<div class="empty">Aucun produit ajouté.</div>';
 }
 function saveIntervention(id){
- const i=data.interventions.find(x=>x.id===id);
- if(!i){toast('Intervention introuvable');return}
- i.clientId=if_client.value;i.date=if_date.value;i.type=if_type.value.trim();i.pest=if_pest.value.trim();i.zones=if_zones.value.trim();i.observations=if_obs.value.trim();i.updatedAt=Date.now();
- save();toast('Intervention enregistrée');openIntervention(id);
+ let i=data.interventions.find(x=>x.id===id);
+ if(!i){
+   i={id:id,number:'',clientId:'',date:'',type:'',pest:'',zones:'',observations:'',passages:[],products:[],signature:'',createdAt:Date.now()};
+   i.number=nextNumber();
+   data.interventions.push(i);
+ }
+ i.clientId=if_client.value;
+ i.date=if_date.value;
+ i.type=if_type.value.trim();
+ i.pest=if_pest.value.trim();
+ i.zones=if_zones.value.trim();
+ i.observations=if_obs.value.trim();
+ i.updatedAt=Date.now();
+ save();
+ toast('Intervention enregistrée');
+ openIntervention(id);
 }
 function openIntervention(id){
  const i=data.interventions.find(x=>x.id===id);if(!i)return;
