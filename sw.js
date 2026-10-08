@@ -1,4 +1,4 @@
-const CACHE='gpc3d-v2-cache-1';
+const CACHE='gpc3d-v2-cache-2';
 const ASSETS=['./','./index.html','./manifest.json','./icon-192.svg','./icon-512.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
