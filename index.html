@@ -1,1 +1,302 @@
-<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#173b32"><title>GPC3D Mobile</title><style>body{font:16px system-ui;margin:0;background:#f2f5f3;color:#17221e}header{background:#173b32;color:white;padding:20px}main{max-width:700px;margin:auto;padding:14px}.tabs{display:flex;gap:6px;overflow:auto}button{padding:11px;border:0;border-radius:9px;background:#dce7e1;color:#173b32;font-weight:bold}.active,.save{background:#176b4b;color:white}.panel{background:white;padding:15px;border-radius:12px;margin:12px 0}label{display:block;margin:10px 0 4px}input,textarea,select{box-sizing:border-box;width:100%;padding:11px;border:1px solid #cbd6cf;border-radius:8px;font:inherit}.save{width:100%;margin-top:12px}.item{border-top:1px solid #ddd;padding:10px 0}.muted{font-size:13px;color:#68766e}</style><header><h2>GPC3D Mobile</h2>Global Pest Control 3D · prototype</header><main><nav class="tabs"><button class="active" data-tab="clients">Clients</button><button data-tab="jobs">Interventions</button><button data-tab="stock">Produits</button><button data-tab="dose">Dosage</button></nav><section id="clients"><div class="panel"><h3>Nouveau client</h3><form id="cf"><label>Nom / société</label><input name="name" required><label>Téléphone</label><input name="phone"><label>Adresse</label><textarea name="address"></textarea><button class="save">Enregistrer</button></form></div><div class="panel"><h3>Clients</h3><div id="cl"></div></div></section><section id="jobs" hidden><div class="panel"><h3>Nouvelle intervention</h3><form id="jf"><label>Client</label><input name="client" required><label>Date</label><input name="date" type="date" required><label>Type / nuisible</label><input name="type" required><label>Zone / surface</label><input name="area"><label>Produit</label><input name="product"><label>Observations</label><textarea name="notes"></textarea><button class="save">Enregistrer</button></form></div><div class="panel"><h3>Historique</h3><div id="jl"></div></div></section><section id="stock" hidden><div class="panel"><h3>Ajouter un produit</h3><form id="sf"><label>Nom</label><input name="name" required><label>Quantité / unité</label><input name="qty"><label>Matière active</label><input name="active"><button class="save">Ajouter</button></form></div><div class="panel"><h3>Stock</h3><div id="sl"></div></div></section><section id="dose" hidden><div class="panel"><h3>Calcul mathématique de dilution</h3><p class="muted">Ne remplace pas l’étiquette ni la dose autorisée localement.</p><label>Concentration cible (%)</label><input id="c" type="number" step="any"><label>Volume final (L)</label><input id="v" type="number" step="any"><button class="save" id="calc">Calculer</button><p id="out"></p></div></section><div class="panel muted">Prototype local : données conservées dans le navigateur de cet appareil seulement. Pas encore de synchronisation cloud, PDF, signature ni mode hors ligne garanti. Ne pas saisir de vraies données sensibles.</div></main><script>const get=k=>JSON.parse(localStorage.getItem('gpc_'+k)||'[]'),put=(k,v)=>localStorage.setItem('gpc_'+k,JSON.stringify(v)),esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));function render(){[['clients','cl'],['jobs','jl'],['stock','sl']].forEach(([k,id])=>document.getElementById(id).innerHTML=get(k).map(x=>'<div class="item"><b>'+esc(x.name||x.client+' — '+x.type)+'</b><div class="muted">'+esc(x.phone||x.date||x.qty||'')+'</div>'+esc(x.address||x.notes||x.active||'')+'</div>').join('')||'Aucun élément enregistré.')}document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));['clients','jobs','stock','dose'].forEach(id=>document.getElementById(id).hidden=id!==b.dataset.tab)});[['cf','clients'],['jf','jobs'],['sf','stock']].forEach(([id,k])=>document.getElementById(id).onsubmit=e=>{e.preventDefault();let d=Object.fromEntries(new FormData(e.target));let a=get(k);a.push(d);put(k,a);e.target.reset();render()});document.getElementById('calc').onclick=()=>{let c=+document.getElementById('c').value,v=+document.getElementById('v').value;document.getElementById('out').textContent=c>0&&v>0?'Équivalent actif : '+(c*v*10).toLocaleString('fr-FR')+' g ou mL. Vérifier formulation, étiquette et réglementation.':'Saisir deux valeurs positives.'};render();</script></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>GPC3D Mobile V2</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--primary:#0f766e;--primary2:#115e59;--bg:#f4f7f7;--card:#fff;--text:#172124;--muted:#66757a;--line:#dce5e5;--danger:#b42318;--shadow:0 4px 18px rgba(20,45,45,.08)}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding-bottom:78px}
+button,input,textarea,select{font:inherit} button{cursor:pointer}.top{position:sticky;top:0;z-index:5;background:rgba(244,247,247,.96);backdrop-filter:blur(10px);padding:14px 16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;justify-content:space-between}.brand h1{font-size:20px;margin:0}.badge{font-size:12px;background:#dff5f2;color:var(--primary2);padding:5px 8px;border-radius:999px;font-weight:700}
+main{max-width:760px;margin:auto;padding:16px}.view{display:none}.view.active{display:block}
+h2{font-size:22px;margin:6px 0 4px}.sub{color:var(--muted);font-size:14px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--shadow);margin-bottom:12px}
+.stat{font-size:26px;font-weight:800}.label{font-size:13px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:700}.primary{background:var(--primary);color:#fff}.secondary{background:#e7eeee;color:var(--primary2)}.danger{background:#fee4e2;color:var(--danger)}.ghost{background:transparent;border:1px solid var(--line)}
+.search{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:12px}
+.field{margin-bottom:12px}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#fff}.field textarea{min-height:90px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.item{padding:13px;border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:9px}.item-title{font-weight:800}.item-meta{font-size:13px;color:var(--muted);margin-top:4px}
+.empty{text-align:center;padding:28px;color:var(--muted)}.back{margin-bottom:12px}
+.bottom{position:fixed;bottom:0;left:0;right:0;z-index:10;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;padding:7px 4px calc(7px + env(safe-area-inset-bottom))}
+.nav{max-width:760px;width:100%;display:grid;grid-template-columns:repeat(4,1fr)}.nav button{background:none;border:0;color:#718083;padding:7px 2px;font-size:11px}.nav button strong{display:block;font-size:20px;line-height:22px}.nav button.active{color:var(--primary);font-weight:800}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#173437;color:#fff;padding:11px 15px;border-radius:12px;display:none;z-index:20}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#edf5f4;color:var(--primary2);font-size:12px;font-weight:700}.danger-text{color:var(--danger)}
+@media(max-width:420px){.row{grid-template-columns:1fr}.grid{gap:8px}.card{padding:13px}}
+
+.signature-box{border:1px dashed #aebcbc;border-radius:14px;background:#fafcfc;overflow:hidden}
+#signatureCanvas{display:block;width:100%;height:190px;touch-action:none;background:#fff}
+.sig-actions{display:flex;gap:8px;padding:9px;border-top:1px solid var(--line)}
+.pdf-preview{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;font-size:13px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><h1>GPC3D Mobile</h1><span class="badge">V2</span></div>
+</header>
+
+<main>
+<section id="home" class="view active">
+  <h2>Tableau de bord</h2><div class="sub">Votre suivi GPC3D, directement depuis le téléphone.</div>
+  <div class="grid">
+    <div class="card"><div class="stat" id="statClients">0</div><div class="label">Clients</div></div>
+    <div class="card"><div class="stat" id="statInterventions">0</div><div class="label">Interventions</div></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Actions rapides</h3>
+    <div class="actions">
+      <button class="btn primary" onclick="newClient()">+ Nouveau client</button>
+      <button class="btn secondary" onclick="newIntervention()">+ Intervention</button>
+    </div>
+  </div>
+  <div class="card"><h3 style="margin-top:0">Dernières interventions</h3><div id="recent"></div></div>
+</section>
+
+<section id="clients" class="view">
+  <h2>Clients</h2><div class="sub">Retrouvez rapidement vos clients et leur historique.</div>
+  <button class="btn primary" onclick="newClient()" style="margin-bottom:12px">+ Nouveau client</button>
+  <input id="clientSearch" class="search" placeholder="Rechercher un client..." oninput="renderClients()">
+  <div id="clientList"></div>
+</section>
+
+<section id="clientDetail" class="view"></section>
+<section id="interventions" class="view">
+  <h2>Interventions</h2><div class="sub">Toutes les interventions enregistrées.</div>
+  <button class="btn primary" onclick="newIntervention()" style="margin-bottom:12px">+ Nouvelle intervention</button>
+  <div id="interventionList"></div>
+</section>
+
+<section id="interventionDetail" class="view"></section>
+
+<section id="settings" class="view">
+  <h2>Réglages & données</h2><div class="sub">Vos données sont actuellement enregistrées sur cet appareil.</div>
+  <div class="card">
+    <h3 style="margin-top:0">Sauvegarde</h3>
+    <p class="sub">Exportez régulièrement une copie de vos clients et interventions.</p>
+    <div class="actions">
+      <button class="btn primary" onclick="exportData()">Exporter les données</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()">Importer</button>
+      <input id="importFile" type="file" accept=".json" hidden onchange="importData(event)">
+    </div>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Numérotation</h3>
+    <p class="sub">Format actuel : <strong>GPC3D-AAAA-0001</strong>. Le compteur est conservé automatiquement sur cet appareil.</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Zone de données</h3>
+    <p class="sub">Clients : <strong id="setClients">0</strong> · Interventions : <strong id="setInterventions">0</strong></p>
+    <button class="btn danger" onclick="clearAll()">Effacer toutes les données</button>
+  </div>
+</section>
+</main>
+
+<nav class="bottom"><div class="nav">
+<button data-view="home" class="active" onclick="show('home')"><strong>⌂</strong>Accueil</button>
+<button data-view="clients" onclick="show('clients');renderClients()"><strong>👥</strong>Clients</button>
+<button data-view="interventions" onclick="show('interventions');renderInterventions()"><strong>📋</strong>Interventions</button>
+<button data-view="settings" onclick="show('settings');renderStats()"><strong>⚙</strong>Réglages</button>
+</div></nav>
+<div id="toast" class="toast"></div>
+
+<script>
+const KEY='gpc3d_v2_data';
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{clients:[],interventions:[],counter:1};
+function save(){localStorage.setItem(KEY,JSON.stringify(data));renderStats();renderHome();}
+
+function show(id){
+ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));
+ window.scrollTo(0,0);
+ if(id==='home')renderHome(); if(id==='clients')renderClients(); if(id==='interventions')renderInterventions(); if(id==='settings')renderStats();
+}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',1800)}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function dateFr(x){return new Date(x).toLocaleDateString('fr-FR')}
+function clientName(c){return c.company||[c.firstName,c.lastName].filter(Boolean).join(' ')||'Client sans nom'}
+
+function renderStats(){
+ statClients.textContent=data.clients.length;statInterventions.textContent=data.interventions.length;
+ setClients.textContent=data.clients.length;setInterventions.textContent=data.interventions.length;
+}
+function renderHome(){
+ renderStats();
+ const list=[...data.interventions].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+ recent.innerHTML=list.length?list.map(i=>`<div class="item" onclick="openIntervention('${i.id}')"><div class="item-title">${esc(i.number)}</div><div class="item-meta">${esc(clientName(data.clients.find(c=>c.id===i.clientId)||{}))} · ${dateFr(i.date)}</div></div>`).join(''):'<div class="empty">Aucune intervention pour le moment.</div>';
+}
+function renderClients(){
+ const q=(clientSearch.value||'').toLowerCase();
+ const list=data.clients.filter(c=>clientName(c).toLowerCase().includes(q)||(c.phone||'').toLowerCase().includes(q));
+ clientList.innerHTML=list.length?list.map(c=>`<div class="item" onclick="openClient('${c.id}')"><div class="item-title">${esc(clientName(c))}</div><div class="item-meta">${esc(c.phone||'')} ${c.email?'· '+esc(c.email):''}</div></div>`).join(''):'<div class="empty">Aucun client trouvé.</div>';
+}
+function newClient(){
+ show('clientDetail'); clientDetail.innerHTML=clientForm({});
+}
+function clientForm(c){
+ return `<div class="back"><button class="btn ghost" onclick="show('clients');renderClients()">← Retour</button></div>
+ <h2>${c.id?'Modifier le client':'Nouveau client'}</h2><div class="sub">Les champs peuvent être complétés progressivement.</div>
+ <div class="card">
+ <div class="field"><label>Entreprise / établissement</label><input id="cf_company" value="${esc(c.company||'')}"></div>
+ <div class="row"><div class="field"><label>Prénom</label><input id="cf_first" value="${esc(c.firstName||'')}"></div><div class="field"><label>Nom</label><input id="cf_last" value="${esc(c.lastName||'')}"></div></div>
+ <div class="field"><label>Téléphone</label><input id="cf_phone" inputmode="tel" value="${esc(c.phone||'')}"></div>
+ <div class="field"><label>E-mail</label><input id="cf_email" type="email" value="${esc(c.email||'')}"></div>
+ <div class="field"><label>Adresse</label><textarea id="cf_address">${esc(c.address||'')}</textarea></div>
+ <div class="field"><label>Notes</label><textarea id="cf_notes">${esc(c.notes||'')}</textarea></div>
+ <div class="actions"><button class="btn primary" onclick="saveClient('${c.id||''}')">Enregistrer</button>${c.id?`<button class="btn danger" onclick="deleteClient('${c.id}')">Supprimer</button>`:''}</div>
+ </div>`;
+}
+function saveClient(id){
+ const c={id:id||uid(),company:cf_company.value.trim(),firstName:cf_first.value.trim(),lastName:cf_last.value.trim(),phone:cf_phone.value.trim(),email:cf_email.value.trim(),address:cf_address.value.trim(),notes:cf_notes.value.trim(),updatedAt:Date.now()};
+ if(!clientName(c)||clientName(c)==='Client sans nom'){toast('Indiquez au moins un nom ou une entreprise');return}
+ const old=data.clients.find(x=>x.id===c.id); if(old)Object.assign(old,c);else data.clients.push(c);
+ save();toast('Client enregistré');openClient(c.id);
+}
+function openClient(id){
+ const c=data.clients.find(x=>x.id===id);if(!c)return;
+ const ints=data.interventions.filter(i=>i.clientId===id).sort((a,b)=>b.createdAt-a.createdAt);
+ show('clientDetail');
+ clientDetail.innerHTML=`<div class="back"><button class="btn ghost" onclick="show('clients');renderClients()">← Clients</button></div>
+ <h2>${esc(clientName(c))}</h2><div class="sub">${esc(c.phone||'')}${c.email?' · '+esc(c.email):''}</div>
+ <div class="card"><div><strong>Adresse</strong><p class="sub">${esc(c.address||'Non renseignée')}</p></div><div><strong>Notes</strong><p class="sub">${esc(c.notes||'Aucune')}</p></div>
+ <button class="btn secondary" onclick="editClient('${c.id}')">Modifier le client</button></div>
+ <div class="card"><h3 style="margin-top:0">Interventions</h3>${ints.length?ints.map(i=>`<div class="item" onclick="openIntervention('${i.id}')"><div class="item-title">${esc(i.number)}</div><div class="item-meta">${dateFr(i.date)} · ${esc(i.type||'Intervention')}</div></div>`).join(''):'<div class="empty">Aucune intervention.</div>'}
+ <button class="btn primary" onclick="newIntervention('${c.id}')">+ Nouvelle intervention</button></div>`;
+}
+function editClient(id){const c=data.clients.find(x=>x.id===id);show('clientDetail');clientDetail.innerHTML=clientForm(c)}
+
+function deleteClient(id){
+ if(!confirm('Supprimer ce client ?'))return;
+ data.clients=data.clients.filter(c=>c.id!==id);save();show('clients');renderClients();toast('Client supprimé');
+}
+
+function nextNumber(){
+ const y=new Date().getFullYear(); const n=String(data.counter++).padStart(4,'0'); return `GPC3D-${y}-${n}`;
+}
+function newIntervention(clientId=''){
+ const i={id:uid(),number:nextNumber(),clientId,date:new Date().toISOString().slice(0,10),type:'Maintenance / traitement',pest:'',zones:'',observations:'',passages:[],products:[],signature:'',createdAt:Date.now()};
+ show('interventionDetail');interventionDetail.innerHTML=interventionForm(i,true);setTimeout(()=>setupSignature(i.id),50);
+}
+function interventionForm(i,isNew=false){
+ const clientOpts=data.clients.map(c=>`<option value="${c.id}" ${c.id===i.clientId?'selected':''}>${esc(clientName(c))}</option>`).join('');
+ return `<div class="back"><button class="btn ghost" onclick="show('${i.clientId?'clientDetail':'interventions'}');${i.clientId?`openClient('${i.clientId}')`:'renderInterventions()'}">← Retour</button></div>
+ <h2>${esc(i.number)}</h2><div class="sub">${isNew?'Nouvelle intervention':'Modifier l’intervention'}</div>
+ <div class="card">
+ <div class="field"><label>Client</label><select id="if_client"><option value="">— Sélectionner —</option>${clientOpts}</select></div>
+ <div class="row"><div class="field"><label>Date</label><input id="if_date" type="date" value="${esc(i.date)}"></div><div class="field"><label>Type</label><input id="if_type" value="${esc(i.type)}"></div></div>
+ <div class="field"><label>Nuisible / motif</label><input id="if_pest" value="${esc(i.pest)}"></div>
+ <div class="field"><label>Zones traitées</label><textarea id="if_zones">${esc(i.zones)}</textarea></div>
+ <div class="field"><label>Observations</label><textarea id="if_obs">${esc(i.observations)}</textarea></div>
+ <div class="actions"><button class="btn primary" onclick="saveIntervention('${i.id}')">Enregistrer</button></div>
+ </div>
+ <div class="card"><h3 style="margin-top:0">Passages</h3><div id="passageList">${renderPassages(i)}</div><button class="btn secondary" onclick="addPassage('${i.id}')">+ Ajouter un passage</button></div>
+ <div class="card"><h3 style="margin-top:0">Produits utilisés</h3><div id="productList">${renderProducts(i)}</div><button class="btn secondary" onclick="addProduct('${i.id}')">+ Ajouter un produit</button></div>
+ <div class="card"><h3 style="margin-top:0">Signature client</h3>
+ <p class="sub">Le client peut signer directement sur l’écran du téléphone.</p>
+ <div class="signature-box"><canvas id="signatureCanvas"></canvas><div class="sig-actions"><button class="btn secondary" onclick="clearSignature('${i.id}')">Effacer</button><button class="btn primary" onclick="saveSignature('${i.id}')">Enregistrer la signature</button></div></div>
+ </div>
+ <div class="card"><h3 style="margin-top:0">Fiche d’intervention</h3>
+ <p class="sub">La fiche est préparée pour impression ou enregistrement au format PDF depuis le téléphone.</p>
+ <div class="actions"><button class="btn primary" onclick="printIntervention('${i.id}')">📄 Générer / imprimer la fiche</button></div>
+ </div>`;
+}
+function renderPassages(i){
+ return i.passages.length?i.passages.map((p,n)=>`<div class="item"><div class="item-title">Passage ${n+1} — ${dateFr(p.date)}</div><div class="item-meta">${esc(p.note||'Aucune observation')}</div></div>`).join(''):'<div class="empty">Aucun passage supplémentaire.</div>';
+}
+function renderProducts(i){
+ return i.products.length?i.products.map((p,n)=>`<div class="item"><div class="item-title">${esc(p.name)}</div><div class="item-meta">${esc(p.qty)} ${esc(p.unit||'')}</div></div>`).join(''):'<div class="empty">Aucun produit ajouté.</div>';
+}
+function saveIntervention(id){
+ const i=data.interventions.find(x=>x.id===id);
+ if(!i){toast('Intervention introuvable');return}
+ i.clientId=if_client.value;i.date=if_date.value;i.type=if_type.value.trim();i.pest=if_pest.value.trim();i.zones=if_zones.value.trim();i.observations=if_obs.value.trim();i.updatedAt=Date.now();
+ save();toast('Intervention enregistrée');openIntervention(id);
+}
+function openIntervention(id){
+ const i=data.interventions.find(x=>x.id===id);if(!i)return;
+ show('interventionDetail');interventionDetail.innerHTML=interventionForm(i,false);setTimeout(()=>setupSignature(i.id),50);
+}
+function addPassage(id){
+ const i=data.interventions.find(x=>x.id===id);if(!i)return;
+ const d=prompt('Date du passage (AAAA-MM-JJ)',new Date().toISOString().slice(0,10));if(!d)return;
+ const note=prompt('Observation du passage','')??'';
+ i.passages.push({date:d,note});save();openIntervention(id);
+}
+function addProduct(id){
+ const i=data.interventions.find(x=>x.id===id);if(!i)return;
+ const name=prompt('Nom du produit');if(!name)return;
+ const qty=prompt('Quantité','1')??'1';const unit=prompt('Unité (L, mL, kg, g...)','')??'';
+ i.products.push({name,qty,unit});save();openIntervention(id);
+}
+
+let sigCanvas, sigCtx, sigDrawing=false, sigDirty=false;
+function setupSignature(i){
+  sigCanvas=document.getElementById('signatureCanvas'); if(!sigCanvas)return;
+  const box=sigCanvas.getBoundingClientRect(), ratio=Math.max(window.devicePixelRatio||1,1);
+  sigCanvas.width=Math.round(box.width*ratio); sigCanvas.height=Math.round(box.height*ratio);
+  sigCtx=sigCanvas.getContext('2d'); sigCtx.scale(ratio,ratio); sigCtx.lineWidth=2.2; sigCtx.lineCap='round'; sigCtx.lineJoin='round';
+  const existing=(data.interventions.find(x=>x.id===i)?.signature)||'';
+  if(existing){const im=new Image();im.onload=()=>sigCtx.drawImage(im,0,0,box.width,box.height);im.src=existing;}
+  const point=e=>{const r=sigCanvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}};
+  sigCanvas.onpointerdown=e=>{sigDrawing=true;sigDirty=true;const p=point(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);sigCanvas.setPointerCapture(e.pointerId)};
+  sigCanvas.onpointermove=e=>{if(!sigDrawing)return;const p=point(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke()};
+  sigCanvas.onpointerup=()=>{sigDrawing=false}; sigCanvas.onpointercancel=()=>{sigDrawing=false};
+}
+function clearSignature(id){if(!sigCtx)return;sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);const i=data.interventions.find(x=>x.id===id);if(i)i.signature='';save();toast('Signature effacée')}
+function saveSignature(id){
+ if(!sigCanvas||!sigCtx){toast('Zone de signature indisponible');return}
+ const i=data.interventions.find(x=>x.id===id);if(!i)return;
+ i.signature=sigCanvas.toDataURL('image/png');i.updatedAt=Date.now();save();toast('Signature enregistrée');
+}
+function printIntervention(id){
+ const i=data.interventions.find(x=>x.id===id);if(!i)return;
+ const c=data.clients.find(x=>x.id===i.clientId)||{};
+ const passages=i.passages.length?i.passages.map((p,n)=>`<tr><td>Passage ${n+1}</td><td>${esc(dateFr(p.date))}</td><td>${esc(p.note||'')}</td></tr>`).join(''):`<tr><td>Passage initial</td><td>${esc(dateFr(i.date))}</td><td></td></tr>`;
+ const products=i.products.length?i.products.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.qty)} ${esc(p.unit||'')}</td></tr>`).join(''):`<tr><td colspan="2">Aucun produit renseigné</td></tr>`;
+ const sig=i.signature?`<img src="${i.signature}" style="max-width:320px;height:130px;object-fit:contain;border-bottom:1px solid #999">`:'<div style="height:100px;border-bottom:1px solid #999;width:320px"></div>';
+ const w=window.open('','_blank','width=900,height=800');
+ if(!w){toast('Autorisez les fenêtres contextuelles pour générer la fiche');return}
+ w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(i.number)}</title><style>
+ body{font-family:Arial,sans-serif;color:#172124;margin:40px;line-height:1.45}h1{font-size:24px;margin-bottom:4px}h2{font-size:16px;margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:5px}
+ .muted{color:#66757a}.box{border:1px solid #ddd;border-radius:8px;padding:12px;margin-top:10px}table{width:100%;border-collapse:collapse;margin-top:8px}td,th{border:1px solid #ddd;padding:7px;text-align:left}th{background:#f1f4f4}.head{display:flex;justify-content:space-between;border-bottom:2px solid #0f766e;padding-bottom:12px}.sig{margin-top:15px}
+ @media print{body{margin:18mm}.noprint{display:none}}
+ </style></head><body>
+ <div class="head"><div><h1>GPC3D</h1><div class="muted">Fiche d'intervention</div></div><div><strong>${esc(i.number)}</strong><br>${esc(dateFr(i.date))}</div></div>
+ <h2>Client</h2><div class="box"><strong>${esc(clientName(c))}</strong><br>${esc(c.address||'')}<br>${esc(c.phone||'')} ${c.email?'· '+esc(c.email):''}</div>
+ <h2>Intervention</h2><div class="box"><strong>Type :</strong> ${esc(i.type||'')}<br><strong>Nuisible / motif :</strong> ${esc(i.pest||'')}<br><strong>Zones :</strong><br>${esc(i.zones||'').replace(/\n/g,'<br>')}<br><br><strong>Observations :</strong><br>${esc(i.observations||'').replace(/\n/g,'<br>')}</div>
+ <h2>Passages</h2><table><tr><th>Passage</th><th>Date</th><th>Observation</th></tr>${passages}</table>
+ <h2>Produits utilisés</h2><table><tr><th>Produit</th><th>Quantité</th></tr>${products}</table>
+ <h2>Signature du client</h2><div class="sig">${sig}</div>
+ <p class="muted" style="margin-top:35px">Document généré depuis GPC3D Mobile · ${new Date().toLocaleString('fr-FR')}</p>
+ <button class="noprint" onclick="window.print()" style="padding:10px 15px">Imprimer / Enregistrer en PDF</button>
+ </body></html>`);
+ w.document.close();
+}
+
+function renderInterventions(){
+ const list=[...data.interventions].sort((a,b)=>b.createdAt-a.createdAt);
+ interventionList.innerHTML=list.length?list.map(i=>{const c=data.clients.find(x=>x.id===i.clientId);return `<div class="item" onclick="openIntervention('${i.id}')"><div class="item-title">${esc(i.number)}</div><div class="item-meta">${esc(c?clientName(c):'Client non sélectionné')} · ${dateFr(i.date)} · ${esc(i.type||'')}</div></div>`}).join(''):'<div class="empty">Aucune intervention.</div>';
+}
+function exportData(){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='GPC3D-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);
+}
+function importData(e){
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.clients||!d.interventions)throw 0;data=d;save();toast('Sauvegarde importée')}catch{toast('Fichier invalide')}};r.readAsText(f);
+}
+function clearAll(){if(confirm('ATTENTION : effacer toutes les données de GPC3D Mobile ?')){data={clients:[],interventions:[],counter:1};save();show('home');toast('Données effacées')}}
+function createDemo(){
+ if(data.clients.length)return;
+ data.clients.push({id:uid(),company:'Exemple Client',firstName:'',lastName:'',phone:'',email:'',address:'',notes:'Client de démonstration'});
+ save();
+}
+renderHome();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
