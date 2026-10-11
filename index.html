@@ -24,7 +24,7 @@ h2{font-size:22px;margin:6px 0 4px}.sub{color:var(--muted);font-size:14px;margin
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.item{padding:13px;border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:9px}.item-title{font-weight:800}.item-meta{font-size:13px;color:var(--muted);margin-top:4px}
 .empty{text-align:center;padding:28px;color:var(--muted)}.back{margin-bottom:12px}
 .bottom{position:fixed;bottom:0;left:0;right:0;z-index:10;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;padding:7px 4px calc(7px + env(safe-area-inset-bottom))}
-.nav{max-width:760px;width:100%;display:grid;grid-template-columns:repeat(4,1fr)}.nav button{background:none;border:0;color:#718083;padding:7px 2px;font-size:11px}.nav button strong{display:block;font-size:20px;line-height:22px}.nav button.active{color:var(--primary);font-weight:800}
+.nav{max-width:760px;width:100%;display:grid;grid-template-columns:repeat(5,1fr)}.nav button{background:none;border:0;color:#718083;padding:7px 2px;font-size:10px}.nav button strong{display:block;font-size:20px;line-height:22px}.nav button.active{color:var(--primary);font-weight:800}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#173437;color:#fff;padding:11px 15px;border-radius:12px;display:none;z-index:20}
 .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#edf5f4;color:var(--primary2);font-size:12px;font-weight:700}.danger-text{color:var(--danger)}
 @media(max-width:420px){.row{grid-template-columns:1fr}.grid{gap:8px}.card{padding:13px}}
@@ -73,11 +73,31 @@ h2{font-size:22px;margin:6px 0 4px}.sub{color:var(--muted);font-size:14px;margin
 
 <section id="interventionDetail" class="view"></section>
 
+<section id="stock" class="view">
+  <h2>Catalogue et stock</h2>
+  <div class="sub">Suivez les quantités, les entrées, les sorties et les corrections. Un stock initial doit être renseigné pour chaque produit.</div>
+  <div class="grid">
+    <div class="card"><div class="stat" id="stockProductCount">0</div><div class="label">Produits au catalogue</div></div>
+    <div class="card"><div class="stat" id="stockLowCount">0</div><div class="label">Stocks faibles ou épuisés</div></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Actions</h3>
+    <div class="actions">
+      <button class="btn primary" onclick="openCatalogProductForm()">+ Nouveau produit</button>
+      <button class="btn secondary" onclick="openMovementForm()">+ Mouvement de stock</button>
+    </div>
+  </div>
+  <div id="stockAlertList"></div>
+  <div id="stockEditor"></div>
+  <div class="card"><h3 style="margin-top:0">Catalogue</h3><div id="stockCatalog"></div></div>
+  <div class="card"><h3 style="margin-top:0">Historique des mouvements</h3><div id="stockHistory"></div></div>
+</section>
+
 <section id="settings" class="view">
   <h2>Réglages & données</h2><div class="sub">Vos données sont actuellement enregistrées sur cet appareil.</div>
   <div class="card">
     <h3 style="margin-top:0">Sauvegarde</h3>
-    <p class="sub">Exportez régulièrement une copie de vos clients et interventions.</p>
+    <p class="sub">Exportez régulièrement vos clients, interventions, catalogue et mouvements de stock.</p>
     <div class="actions">
       <button class="btn primary" onclick="exportData()">Exporter les données</button>
       <button class="btn secondary" onclick="document.getElementById('importFile').click()">Importer</button>
@@ -100,14 +120,29 @@ h2{font-size:22px;margin:6px 0 4px}.sub{color:var(--muted);font-size:14px;margin
 <button data-view="home" class="active" onclick="show('home')"><strong>⌂</strong>Accueil</button>
 <button data-view="clients" onclick="show('clients');renderClients()"><strong>👥</strong>Clients</button>
 <button data-view="interventions" onclick="show('interventions');renderInterventions()"><strong>📋</strong>Interventions</button>
+<button data-view="stock" onclick="show('stock')"><strong>📦</strong>Stock</button>
 <button data-view="settings" onclick="show('settings');renderStats()"><strong>⚙</strong>Réglages</button>
 </div></nav>
 <div id="toast" class="toast"></div>
 
 <script>
+function defaultCatalog(){
+ return [
+  {id:'contrac-blox',name:'Contrac Blox',type:'Rodenticide',presentation:'Appât en blocs, sans dilution',stockUnit:'blocs',minStock:null,calculatorEnabled:false,note:'Suivi du stock en blocs. Aucun calcul de dilution.'},
+  {id:'notrac-blox',name:'Notrac Blox',type:'Rodenticide',presentation:'Appât en blocs, sans dilution',stockUnit:'blocs',minStock:null,calculatorEnabled:false,note:'Suivi du stock en blocs. Aucun calcul de dilution.'},
+  {id:'talstar-liquide',name:'Talstar liquide',type:'Insecticide liquide concentré',presentation:'Formulation exacte à confirmer sur l’étiquette',stockUnit:'mL',minStock:null,calculatorEnabled:false,note:'Dose mentionnée : 150 mL pour 20 L d’eau. À vérifier sur l’étiquette applicable; calcul automatique désactivé.'},
+  {id:'termidor-80-wg',name:'Termidor 80 WG',type:'Insecticide en granulés dispersibles (WG)',presentation:'Granulés; présentation exacte à confirmer',stockUnit:'g',minStock:null,calculatorEnabled:false,note:'Dosage non renseigné. Calcul automatique désactivé jusqu’à vérification de l’étiquette applicable.'},
+  {id:'taurus-sc',name:'Taurus SC',type:'Insecticide liquide concentré (SC)',presentation:'Formulation exacte à confirmer sur l’étiquette',stockUnit:'mL',minStock:null,calculatorEnabled:false,note:'Formulation et usages à vérifier. Calcul automatique désactivé.'}
+ ];
+}
+function normalizeData(source){
+ const d=source&&typeof source==='object'&&!Array.isArray(source)?source:{};
+ const movements=Array.isArray(d.stockMovements)?d.stockMovements.filter(m=>m&&typeof m.productId==='string'&&Number.isFinite(Number(m.delta))):[];
+ return {...d,clients:Array.isArray(d.clients)?d.clients:[],interventions:Array.isArray(d.interventions)?d.interventions:[],counter:Number.isSafeInteger(d.counter)&&d.counter>0?d.counter:1,dataVersion:3,catalog:Array.isArray(d.catalog)?d.catalog:defaultCatalog(),stockMovements:movements};
+}
 const KEY='gpc3d_v2_data';
-let data=JSON.parse(localStorage.getItem(KEY)||'null')||{clients:[],interventions:[],counter:1};
-function save(){localStorage.setItem(KEY,JSON.stringify(data));renderStats();renderHome();}
+let data=normalizeData(JSON.parse(localStorage.getItem(KEY)||'null'));
+function save(){localStorage.setItem(KEY,JSON.stringify(data));renderStats();renderHome();if(document.getElementById('stock')?.classList.contains('active'))renderStock();}
 
 function show(id){
  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -115,12 +150,118 @@ function show(id){
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));
  window.scrollTo(0,0);
  if(id==='home')renderHome(); if(id==='clients')renderClients(); if(id==='interventions')renderInterventions(); if(id==='settings')renderStats();
+ if(id==='stock')renderStock();
 }
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',1800)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function dateFr(x){return new Date(x).toLocaleDateString('fr-FR')}
 function clientName(c){return c.company||[c.firstName,c.lastName].filter(Boolean).join(' ')||'Client sans nom'}
+function formatQuantity(n){return Number(n).toLocaleString('fr-FR',{maximumFractionDigits:3})}
+function stockBalance(productId){
+ const movements=data.stockMovements.filter(m=>m.productId===productId);
+ const initialized=movements.some(m=>m.kind==='initial');
+ if(!initialized)return {initialized:false,quantity:null};
+ return {initialized:true,quantity:movements.reduce((sum,m)=>sum+Number(m.delta||0),0)};
+}
+function stockIsLow(product){
+ const balance=stockBalance(product.id);
+ return balance.initialized&&(balance.quantity<=0||(product.minStock!==null&&Number.isFinite(Number(product.minStock))&&balance.quantity<=Number(product.minStock)));
+}
+function movementLabel(kind){
+ return ({initial:'Stock initial',entry:'Entrée',exit:'Sortie manuelle',adjustment:'Correction d’inventaire'})[kind]||'Mouvement';
+}
+function renderStock(){
+ const activeProducts=data.catalog.filter(p=>!p.archived);
+ const lowProducts=activeProducts.filter(stockIsLow);
+ document.getElementById('stockProductCount').textContent=activeProducts.length;
+ document.getElementById('stockLowCount').textContent=lowProducts.length;
+ document.getElementById('stockAlertList').innerHTML=lowProducts.length?'<div class="card"><h3 style="margin-top:0">À vérifier</h3>'+lowProducts.map(p=>{const b=stockBalance(p.id);return '<div class="item"><div class="item-title">'+esc(p.name)+' · '+(b.quantity<=0?'épuisé':'stock faible')+'</div><div class="item-meta">Disponible : '+formatQuantity(b.quantity)+' '+esc(p.stockUnit||'unité')+(p.minStock!==null?' · Seuil : '+formatQuantity(p.minStock)+' '+esc(p.stockUnit||'unité'):'')+'</div></div>'}).join('')+'</div>':'';
+ document.getElementById('stockCatalog').innerHTML=activeProducts.length?activeProducts.map(renderCatalogProduct).join(''):'<div class="empty">Aucun produit au catalogue.</div>';
+ const history=[...data.stockMovements].sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
+ document.getElementById('stockHistory').innerHTML=history.length?history.map(m=>{const p=data.catalog.find(x=>x.id===m.productId);const delta=Number(m.delta||0);const sign=delta>0?'+':'';return '<div class="item"><div class="item-title">'+esc(p?p.name:'Produit archivé')+' · '+movementLabel(m.kind)+'</div><div class="item-meta">'+dateFr(m.createdAt)+' · '+sign+formatQuantity(delta)+' '+esc(m.unit||(p&&p.stockUnit)||'unité')+(Number.isFinite(Number(m.balanceAfter))?' · Après : '+formatQuantity(m.balanceAfter)+' '+esc(m.unit||(p&&p.stockUnit)||'unité'):'')+(m.note?' · '+esc(m.note):'')+'</div></div>'}).join(''):'<div class="empty">Aucun mouvement enregistré.</div>';
+}
+function renderCatalogProduct(p){
+ const balance=stockBalance(p.id),unit=esc(p.stockUnit||'unité');
+ let status='<span class="pill">Stock initial à renseigner</span>';
+ if(balance.initialized&&balance.quantity<=0)status='<span class="pill danger-text">Épuisé</span>';
+ else if(balance.initialized&&stockIsLow(p))status='<span class="pill danger-text">Stock faible</span>';
+ else if(balance.initialized)status='<span class="pill">Stock disponible</span>';
+ const threshold=p.minStock!==null&&Number.isFinite(Number(p.minStock))?formatQuantity(p.minStock)+' '+unit:'non défini';
+ const buttons=balance.initialized
+  ?'<button class="btn secondary" onclick="openMovementForm(\''+p.id+'\',\'entry\')">Entrée</button><button class="btn secondary" onclick="openMovementForm(\''+p.id+'\',\'exit\')">Sortie</button><button class="btn ghost" onclick="openMovementForm(\''+p.id+'\',\'adjustment\')">Inventaire</button>'
+  :'<button class="btn secondary" onclick="openMovementForm(\''+p.id+'\',\'initial\')">Renseigner le stock initial</button>';
+ return '<div class="item"><div class="item-title">'+esc(p.name)+' '+status+'</div><div class="item-meta">'+esc(p.type||'Type non renseigné')+' · '+esc(p.presentation||'Présentation non renseignée')+'</div><div class="item-meta">Stock : '+(balance.initialized?formatQuantity(balance.quantity)+' '+unit:'à renseigner')+' · Alerte sous : '+threshold+'</div>'+(p.note?'<p class="sub">'+esc(p.note)+'</p>':'')+'<div class="actions">'+buttons+'<button class="btn ghost" onclick="openCatalogProductForm(\''+p.id+'\')">Modifier</button></div></div>';
+}
+function openCatalogProductForm(id){
+ const editor=document.getElementById('stockEditor');
+ const p=id?data.catalog.find(x=>x.id===id):null;
+ const hasMovements=p&&data.stockMovements.some(m=>m.productId===p.id);
+ const units=['blocs','mL','L','g','kg','unité'];
+ if(p&&p.stockUnit&&!units.includes(p.stockUnit))units.push(p.stockUnit);
+ const unitOptions=units.map(u=>'<option value="'+esc(u)+'" '+(p&&p.stockUnit===u?'selected':'')+'>'+esc(u)+'</option>').join('');
+ editor.innerHTML='<div class="card"><h3 style="margin-top:0">'+(p?'Modifier le produit':'Nouveau produit')+'</h3><div class="field"><label>Nom du produit</label><input id="catalogName" value="'+esc(p?p.name:'')+'" maxlength="80"></div><div class="field"><label>Type</label><input id="catalogType" value="'+esc(p?p.type:'')+'" maxlength="80"></div><div class="field"><label>Présentation</label><input id="catalogPresentation" value="'+esc(p?p.presentation:'')+'" maxlength="120"></div><div class="field"><label>Unité de stock</label><select id="catalogUnit" '+(hasMovements?'disabled':'')+'>'+unitOptions+'</select>'+(hasMovements?'<div class="item-meta">L’unité ne peut plus être changée après le premier mouvement.</div>':'')+'</div><div class="field"><label>Seuil d’alerte (laisser vide si non défini)</label><input id="catalogThreshold" type="number" min="0" step="0.001" value="'+(p&&p.minStock!==null?esc(p.minStock):'')+'"></div><div class="actions"><button class="btn primary" onclick="saveCatalogProduct(\''+(p?p.id:'')+'\')">Enregistrer</button><button class="btn ghost" onclick="document.getElementById(\'stockEditor\').innerHTML=\'\'">Annuler</button></div></div>';
+}
+function saveCatalogProduct(id){
+ const name=document.getElementById('catalogName').value.trim(),type=document.getElementById('catalogType').value.trim(),presentation=document.getElementById('catalogPresentation').value.trim();
+ const unit=document.getElementById('catalogUnit').value,thresholdText=document.getElementById('catalogThreshold').value.trim();
+ if(!name||!type||!presentation){toast('Renseignez le nom, le type et la présentation');return}
+ const threshold=thresholdText===''?null:Number(thresholdText);
+ if(threshold!==null&&(!Number.isFinite(threshold)||threshold<0||(unit==='blocs'&&!Number.isInteger(threshold)))){toast('Vérifiez le seuil et son unité');return}
+ const duplicate=data.catalog.find(p=>p.id!==id&&p.name.toLowerCase()===name.toLowerCase());
+ if(duplicate){toast('Un produit porte déjà ce nom');return}
+ const old=id?data.catalog.find(p=>p.id===id):null;
+ if(old&&old.stockUnit!==unit&&data.stockMovements.some(m=>m.productId===id)){toast('L’unité est verrouillée après le premier mouvement');return}
+ const p=old||{id:'produit-'+uid(),calculatorEnabled:false,note:'Calcul automatique désactivé.'};
+ Object.assign(p,{name:name,type:type,presentation:presentation,stockUnit:unit,minStock:threshold});
+ if(!old)data.catalog.push(p);
+ save();renderStock();toast('Produit enregistré');
+}
+function openMovementForm(productId,kind){
+ const editor=document.getElementById('stockEditor'),products=data.catalog.filter(p=>!p.archived);
+ if(!products.length){editor.innerHTML='<div class="card"><div class="empty">Ajoutez d’abord un produit au catalogue.</div></div>';return}
+ const selectedId=productId||products[0].id,selected=data.catalog.find(p=>p.id===selectedId)||products[0],balance=stockBalance(selected.id);
+ const kinds=[['initial','Stock initial'],['entry','Entrée'],['exit','Sortie manuelle'],['adjustment','Correction d’inventaire']];
+ const productOptions=products.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected.id?'selected':'')+'>'+esc(p.name)+'</option>').join('');
+ const kindOptions=kinds.map(k=>'<option value="'+k[0]+'" '+(k[0]===(kind||(balance.initialized?'entry':'initial'))?'selected':'')+'>'+k[1]+'</option>').join('');
+ editor.innerHTML='<div class="card"><h3 style="margin-top:0">Mouvement de stock</h3><div class="field"><label>Produit</label><select id="stockMovementProduct" onchange="updateMovementForm()">'+productOptions+'</select></div><div class="field"><label>Type de mouvement</label><select id="stockMovementKind" onchange="updateMovementForm()">'+kindOptions+'</select></div><div class="field"><label id="stockMovementQtyLabel">Quantité</label><input id="stockMovementQty" type="number" min="0" step="0.001"></div><div id="stockMovementHelp" class="sub"></div><div class="field"><label>Note (facultative)</label><input id="stockMovementNote" maxlength="120"></div><div class="actions"><button id="stockMovementSave" class="btn primary" onclick="saveStockMovement()">Enregistrer le mouvement</button><button class="btn ghost" onclick="document.getElementById(\'stockEditor\').innerHTML=\'\'">Annuler</button></div></div>';
+ updateMovementForm();
+}
+function updateMovementForm(){
+ const productId=document.getElementById('stockMovementProduct')?.value,product=data.catalog.find(p=>p.id===productId);
+ const kindSelect=document.getElementById('stockMovementKind'),label=document.getElementById('stockMovementQtyLabel'),qty=document.getElementById('stockMovementQty'),help=document.getElementById('stockMovementHelp'),saveButton=document.getElementById('stockMovementSave');
+ if(!product||!kindSelect)return;
+ const balance=stockBalance(product.id),initialOption=kindSelect.querySelector('option[value="initial"]');
+ initialOption.disabled=balance.initialized;
+ Array.from(kindSelect.options).forEach(o=>{if(o.value!=='initial')o.disabled=!balance.initialized});
+ if(!balance.initialized&&kindSelect.value!=='initial')kindSelect.value='initial';
+ if(balance.initialized&&kindSelect.value==='initial')kindSelect.value='entry';
+ const kind=kindSelect.value,unit=product.stockUnit||'unité';
+ label.textContent=(kind==='adjustment'?'Quantité comptée actuellement':'Quantité')+' ('+unit+')';
+ qty.step=unit==='blocs'?'1':'0.001';
+ qty.value='';
+ qty.placeholder=kind==='adjustment'&&balance.initialized?formatQuantity(balance.quantity):'';
+ help.textContent=!balance.initialized&&kind!=='initial'?'Renseignez d’abord le stock initial.':kind==='initial'?'Ce mouvement initialise le stock une seule fois.':kind==='adjustment'?'Saisissez le stock réellement compté; l’écart sera inscrit dans l’historique.':'';
+ saveButton.disabled=(!balance.initialized&&kind!=='initial')||(balance.initialized&&kind==='initial');
+}
+function saveStockMovement(){
+ const product=data.catalog.find(p=>p.id===document.getElementById('stockMovementProduct').value);
+ const qtyText=document.getElementById('stockMovementQty').value.trim(),kind=document.getElementById('stockMovementKind').value,raw=Number(qtyText),note=document.getElementById('stockMovementNote').value.trim();
+ if(!product||qtyText===''||!Number.isFinite(raw)||raw<0){toast('Saisissez une quantité valide');return}
+ if(kind!=='initial'&&kind!=='adjustment'&&raw===0){toast('La quantité doit être supérieure à zéro');return}
+ if(product.stockUnit==='blocs'&&!Number.isInteger(raw)){toast('Le stock en blocs doit être un nombre entier');return}
+ const balance=stockBalance(product.id);
+ if(kind==='initial'&&balance.initialized){toast('Le stock initial est déjà renseigné');return}
+ if(kind!=='initial'&&!balance.initialized){toast('Renseignez d’abord le stock initial');return}
+ let delta=0;
+ if(kind==='initial'||kind==='entry')delta=raw;
+ if(kind==='exit')delta=-raw;
+ if(kind==='adjustment')delta=raw-balance.quantity;
+ const after=(balance.initialized?balance.quantity:0)+delta;
+ if(after<0){toast('Stock insuffisant : la sortie dépasserait la quantité disponible');return}
+ data.stockMovements.push({id:'mouvement-'+uid(),productId:product.id,kind:kind,quantity:raw,delta:delta,unit:product.stockUnit||'unité',note:note,createdAt:Date.now(),balanceAfter:after});
+ save();renderStock();toast('Mouvement enregistré');
+}
 
 function renderStats(){
  statClients.textContent=data.clients.length;statInterventions.textContent=data.interventions.length;
@@ -299,9 +440,9 @@ function exportData(){
  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='GPC3D-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);
 }
 function importData(e){
- const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.clients||!d.interventions)throw 0;data=d;save();toast('Sauvegarde importée')}catch{toast('Fichier invalide')}};r.readAsText(f);
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.clients)||!Array.isArray(d.interventions))throw 0;data=normalizeData(d);save();toast('Sauvegarde importée')}catch{toast('Fichier invalide')}finally{e.target.value=''}};r.readAsText(f);
 }
-function clearAll(){if(confirm('ATTENTION : effacer toutes les données de GPC3D Mobile ?')){data={clients:[],interventions:[],counter:1};save();show('home');toast('Données effacées')}}
+function clearAll(){if(confirm('ATTENTION : effacer toutes les données de GPC3D Mobile ?')){data={clients:[],interventions:[],counter:1,dataVersion:3,catalog:defaultCatalog(),stockMovements:[]};save();show('home');toast('Données effacées')}}
 function createDemo(){
  if(data.clients.length)return;
  data.clients.push({id:uid(),company:'Exemple Client',firstName:'',lastName:'',phone:'',email:'',address:'',notes:'Client de démonstration'});
@@ -312,3 +453,4 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.se
 </script>
 </body>
 </html>
+
