@@ -16,6 +16,8 @@ Application mobile-first pour le suivi GPC3D. Elle fonctionne comme une PWA et c
 - Sauvegarde locale, export et import JSON
 - Manifest PWA et service worker pour l’utilisation hors ligne
 
+La version 2.1 corrigeait l’enregistrement des nouvelles interventions afin que les passages, produits, signatures et fiches soient disponibles immédiatement après leur création.
+
 ## Catalogue et stock
 
 La première ouverture ajoute un catalogue de départ. Les stocks initiaux et seuils d’alerte restent à renseigner par l’utilisateur; une valeur inconnue n’est pas interprétée comme un stock nul. Le stock peut ensuite être suivi par des mouvements manuels d’entrée, de sortie et de correction d’inventaire. Les anciennes fiches et leurs produits en texte libre sont conservés.
